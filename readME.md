@@ -10,6 +10,9 @@ When you first run this, update the event key(s) for the events you want team in
 To find the event key, open the event page in TBA for your event and copy the characters shown from the URL
 
 ## Optional:
-You can optinally also create a discord bot, with admin permissions, and invite it to your team's discord server. You do not have to do this for main.py to function and if you choose not to, can delete bot.py, follow the same rules as the TBA key, except use BotToken.json and "token" as the key
+You can optinally also create a discord bot, with admin permissions, and invite it to your team's discord server.
+You do not have to do this for main.py to function and if you choose not to, can delete bot.py, follow the same
+rules as the TBA key, except use BotToken.json and "token" as the key. Instructions on how to create a discord bot can
+be found at https://discordpy.readthedocs.io/en/stable/discord.html
 
 ![](./screenshots/event-key-location.png)
