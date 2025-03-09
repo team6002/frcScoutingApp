@@ -15,6 +15,7 @@ spreadsheet_name = constant["spreadsheet_name"]
 team_rookie_year_column = constant["team_rookie_year_column"]
 team_auto_move_column = constant["team_auto_move_column"]
 team_climb_column = constant["team_climb_column"]
+team_events_played_column = constant["team_events_played_column"]
 
 
 auth_key = open("./json-files/X-TBA-Auth-Key.json")
@@ -43,6 +44,8 @@ team_winrates = []
 rookie_years = []
 auto_move = []
 climb = []
+events_played = []
+stat_by_team = []
 
 
 def call_tba_api(url):
@@ -64,7 +67,6 @@ def update_event_json():
     for event in event_keys:
         with open(f"./json-files/{event}.json", "w+") as jsonFile:
             data = call_tba_api(f"/event/{event}/teams")
-            print(json.dumps(data))
             jsonFile.write(json.dumps(data))
 
 
@@ -85,12 +87,16 @@ async def update_sheet():
 
     # store team epas, winrates, and rookie years
     for team in team_numbers:
+        stat_by_team.clear()
+        stat_by_team.append(stats.get_team_year(team[0], 2025))
+
         auto_move.append([auto_leave(team[0])])
         climb.append([can_climb(team[0])])
-        team_epas.append([stats.get_team_year(team[0], 2025)["epa"]["breakdown"]["total_points"]])
+        team_epas.append([stat_by_team[0]["epa"]["breakdown"]["total_points"]])
         rookie_years.append([stats.get_team(team[0])["rookie_year"]])
-        team_winrate = round(stats.get_team_year(team[0], 2025)["record"]["winrate"] * 100, 1)
+        team_winrate = round(stat_by_team[0]["record"]["winrate"] * 100, 1)
         team_winrates.append([f"{team_winrate}%"])
+        events_played.append([team_events_played(team[0])])
 
     # use batch update to avoid google requests rate limit
     sheet.batch_update([{
@@ -133,6 +139,11 @@ async def update_sheet():
         "values": climb
     }])
 
+    sheet.batch_update([{
+        "range": f"{team_events_played_column}2:{team_events_played_column}{len(climb) + 1}",
+        "values": events_played
+    }])
+
 def get_epa_by_team(team, epa_type):
     try:
        if epa_type == "total":
@@ -166,70 +177,97 @@ def auto_leave(team_num):
     team_slot = 0
     red = False
     i = 1
-    match = 0
-    matches = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")
-    while match < len(matches):
+    j = 0
+    keys = []
+    for event in call_tba_api(f"team/frc{team_num}/events/2025"):
+        keys.append(event["key"])
 
-        for team in matches[match]["alliances"]["blue"]["team_keys"]:
-            if team == f"frc{team_num}":
-                team_slot = i
-                red = False
-            i = i+1
-        i = 1
-        for team in matches[match]["alliances"]["red"]["team_keys"]:
-            if team == f"frc{team_num}":
-                team_slot = i
-                red = True
-            i = i +1
-        i = 1
+        while j < len(keys):
+            matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
+            match = 0
+            while match < len(matches):
+                for team in matches[match]["alliances"]["blue"]["team_keys"]:
+                    if team == f"frc{team_num}":
+                        team_slot = i
+                        red = False
+                    i = i + 1
+                i = 1
+                for team in matches[match]["alliances"]["red"]["team_keys"]:
+                    if team == f"frc{team_num}":
+                        team_slot = i
+                        red = True
+                    i = i + 1
+                i = 1
 
-        if red is False:
-            leave = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")[match]["score_breakdown"]["blue"][f"autoLineRobot{team_slot}"]
-        else:
-            leave = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")[match]["score_breakdown"]["red"][f"autoLineRobot{team_slot}"]
+                if red is False:
+                    leave = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][
+                        f"autoLineRobot{team_slot}"]
 
-        match = match + 1
+                else:
+                    leave = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["red"][f"autoLineRobot{team_slot}"]
 
-        if leave == "Yes":
-            return True
+                match = match + 1
 
+                # save all results in list, check if list contains one by one, and if contains none, return N/A
+                if leave == "Yes":
+                    return True
+            j += 1
     return False
-
 
 def can_climb(team_num):
     team_slot = 0
     red = False
     i = 1
-    match = 0
-    matches = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")
-    while match < len(matches):
+    j = 0
+    keys = []
+    for event in call_tba_api(f"team/frc{team_num}/events/2025"):
+        keys.append(event["key"])
 
-        for team in matches[match]["alliances"]["blue"]["team_keys"]:
-            if team == f"frc{team_num}":
-                team_slot = i
-                red = False
-            i = i + 1
-        i = 1
-        for team in matches[match]["alliances"]["red"]["team_keys"]:
-            if team == f"frc{team_num}":
-                team_slot = i
-                red = True
-            i = i + 1
-        i = 1
+        while j < len(keys):
+            matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
+            match = 0
+            while match < len(matches):
+                for team in matches[match]["alliances"]["blue"]["team_keys"]:
+                    if team == f"frc{team_num}":
+                        team_slot = i
+                        red = False
+                    i = i + 1
+                i = 1
+                for team in matches[match]["alliances"]["red"]["team_keys"]:
+                    if team == f"frc{team_num}":
+                        team_slot = i
+                        red = True
+                    i = i + 1
+                i = 1
 
-        if red is False:
-            park = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")[match]["score_breakdown"]["blue"][
-                f"endGameRobot{team_slot}"]
-        else:
-            park = call_tba_api(f"team/frc{team_num}/event/{event_keys[0]}/matches")[match]["score_breakdown"]["red"][
-                f"endGameRobot{team_slot}"]
+                if red is False:
+                    park = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][
+                        f"endGameRobot{team_slot}"]
+                else:
+                    park = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["red"][
+                        f"endGameRobot{team_slot}"]
+                match = match + 1
 
-        match = match + 1
-
-
-        if park == "DeepCage":
-            return "Deep Cage"
-        elif park == "ShallowCage":
-            return "Shallow Cage"
+                # save all results in list, check if list contains one by one, and if contains none, return N/A
+                if park == "DeepCage":
+                    return "Deep Cage"
+                elif park == "ShallowCage":
+                    return "Shallow Cage"
+            j += 1
 
     return "Ground"
+
+def team_events_played(team_num):
+    played = 0
+    events = call_tba_api(f"team/frc{team_num}/events/2025/statuses")
+    i = 0
+    for event in events:
+        if (call_tba_api(f"team/frc{team_num}/events/2025/statuses")[event]["overall_status_str"]
+            != f"Team {team_num} is waiting for the event to begin."):
+
+            played += 1
+        i += 1
+    if played == 1:
+        return str(played) + " event"
+    else:
+        return str(played) + " events"
