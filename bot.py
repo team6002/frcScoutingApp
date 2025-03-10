@@ -34,6 +34,11 @@ async def get_name(ctx, team):
     await ctx.defer()
     await ctx.respond(f"team {team}'s name is {main.get_name(int(team))}")
 
+@bot.command(name="get_state", description="returns_requested_teams_state")
+async def get_state(ctx, team):
+    await ctx.defer()
+    await ctx.respond(f"{team}'s home state/province is {main.get_team_state(int(team))}")
+
 @bot.command(name="auto_move", description="returns_if_requested_team_can_auto_move")
 async def get_auto_move(ctx, team):
     await ctx.defer()

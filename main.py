@@ -167,6 +167,9 @@ def get_winrate(team):
 
     return str(round(stats.get_team_year(team, 2025)["record"]["winrate"] * 100, 1)) + "%"
 
+def get_team_state(team):
+    return call_tba_api(f"team/frc{team}")["state_prov"]
+
 def get_rookie_year(team):
     return str(call_tba_api(f"team/frc{team}")["rookie_year"])
 
