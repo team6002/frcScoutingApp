@@ -45,9 +45,9 @@ async def get_park(ctx, team):
     await ctx.respond(f"{team} can climb at the {main.can_climb(int(team))} level")
 
 @bot.command(name="played", description="returns_number_of_tournaments_played")
-async def get_park(ctx, team):
+async def played(ctx, team):
     await ctx.defer()
-    await ctx.respond(f"{team} has competed at {main.events_played(team)}")
+    await ctx.respond(f"{team} has competed at {main.team_events_played(int(team))}")
 
 @bot.command(name="summary", description="returns_summary_of_requested_team")
 async def summary(ctx, team):
@@ -60,7 +60,7 @@ async def summary(ctx, team):
         f"winrate: {main.get_winrate(int(team))} \n" +
         f"can move in auto: {main.auto_leave(int(team))} \n" +
         f"can climb at the: {main.can_climb(int(team))} level\n" +
-        f"has competed at: {main.events_played(team)}\n"
+        f"has competed at: {main.team_events_played(team)}\n"
     )
 
 bot.run(token)

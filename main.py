@@ -258,16 +258,19 @@ def can_climb(team_num):
     return "Ground"
 
 def team_events_played(team_num):
-    played = 0
-    events = call_tba_api(f"team/frc{team_num}/events/2025/statuses")
-    i = 0
-    for event in events:
-        if (call_tba_api(f"team/frc{team_num}/events/2025/statuses")[event]["overall_status_str"]
-            != f"Team {team_num} is waiting for the event to begin."):
+    try:
+        played = 0
+        events = call_tba_api(f"team/frc{team_num}/events/2025/statuses")
+        i = 0
+        for event in events:
+            if (call_tba_api(f"team/frc{team_num}/events/2025/statuses")[event]["overall_status_str"]
+                != f"Team {team_num} is waiting for the event to begin."):
 
-            played += 1
-        i += 1
-    if played == 1:
-        return str(played) + " event"
-    else:
-        return str(played) + " events"
+                played += 1
+            i += 1
+        if played == 1:
+            return str(played) + " event"
+        else:
+            return str(played) + " events"
+    except Exception:
+        return "N/A"
