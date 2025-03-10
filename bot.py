@@ -60,12 +60,13 @@ async def summary(ctx, team):
     await ctx.respond(
         f"summary of team {team} \n" +
         f"name: {main.get_name(int(team))} \n" +
+        f"home state/province: {main.get_team_state(int(team))} \n" +
         f"epa: {main.get_epa_by_team(int(team), "total")} \n" +
         f"rookie year: {main.get_rookie_year(int(team))} \n" +
         f"winrate: {main.get_winrate(int(team))} \n" +
         f"can move in auto: {main.auto_leave(int(team))} \n" +
         f"can climb at the: {main.can_climb(int(team))} level\n" +
-        f"has competed at: {main.team_events_played(team)}\n"
+        f"has competed at: {main.team_events_played(int(team))}\n"
     )
 
 bot.run(token)

@@ -81,9 +81,18 @@ async def update_sheet():
         with open(f"./json-files/{event}.json", "r") as data:
             data = json.load(data)
             for item in data:
-                team_numbers.append([item["team_number"]])
-                team_names.append([item["nickname"]])
-                team_states.append([item["state_prov"]])
+                try:
+                    team_numbers.append([item["team_number"]])
+                except Exception:
+                    team_numbers.append(["N/A"])
+                try:
+                    team_names.append([item["nickname"]])
+                except Exception:
+                    team_names.append(["N/A"])
+                try:
+                    team_states.append([item["state_prov"]])
+                except Exception:
+                    team_states.append(["N/A"])
 
     # store team epas, winrates, and rookie years
     for team in team_numbers:
@@ -156,25 +165,37 @@ def get_epa_by_team(team, epa_type):
            return str(stats.get_team_year(team, 2025)["epa"]["breakdown"]["endgame_points"])
        else:
            return "N/A"
-    except:
+    except Exception:
         return "N/A"
 
 def get_winrate(team):
     try:
         str(round(stats.get_team_year(team, 2025)["record"]["winrate"] * 100, 1))
-    except:
+    except Exception:
         return "N/A"
 
     return str(round(stats.get_team_year(team, 2025)["record"]["winrate"] * 100, 1)) + "%"
 
 def get_team_state(team):
-    return call_tba_api(f"team/frc{team}")["state_prov"]
+    try:
+        state_prov = call_tba_api(f"team/frc{team}")["state_prov"]
+    except Exception:
+        state_prov = "N/A"
+    return state_prov
 
 def get_rookie_year(team):
-    return str(call_tba_api(f"team/frc{team}")["rookie_year"])
+    try:
+        rookie_year = str(call_tba_api(f"team/frc{team}")["rookie_year"])
+    except Exception:
+        rookie_year = "N/A"
+    return rookie_year
 
 def get_name(team):
-    return str(call_tba_api(f"team/frc{team}")["nickname"])
+    try:
+        nickname = (call_tba_api(f"team/frc{team}")["nickname"])
+    except:
+        nickname = "N/A"
+    return nickname
 
 def auto_leave(team_num):
     team_slot = 0
@@ -182,7 +203,16 @@ def auto_leave(team_num):
     i = 1
     j = 0
     keys = []
-    for event in call_tba_api(f"team/frc{team_num}/events/2025"):
+
+    events_auto = call_tba_api(f"team/frc{team_num}/events/2025")
+    try:
+        if "does not exist" in events_auto["Error"]:
+            return False
+    except:
+        pass
+
+    for event in events_auto:
+        print(event)
         keys.append(event["key"])
 
         while j < len(keys):
@@ -223,7 +253,15 @@ def can_climb(team_num):
     i = 1
     j = 0
     keys = []
-    for event in call_tba_api(f"team/frc{team_num}/events/2025"):
+
+    events_climb = call_tba_api(f"team/frc{team_num}/events/2025")
+    try:
+        if "does not exist" in events_climb["Error"]:
+            return False
+    except Exception:
+        pass
+
+    for event in events_climb:
         keys.append(event["key"])
 
         while j < len(keys):
