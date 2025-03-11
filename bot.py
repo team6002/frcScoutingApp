@@ -69,7 +69,7 @@ async def summary(ctx, team):
         f"rookie year: {main.get_rookie_year(int(team))} \n" +
         f"winrate: {main.get_winrate(int(team))} \n" +
         f"can move in auto: {main.auto_leave(int(team))} \n" +
-        f"leaves the start line: {main.auto_leave_percentage(int(team))}% of the time\n" +
+        f"leaves the start line: {main.get_percentage(int(team), "auto_leave")}% of the time\n" +
         f"can climb at the: {main.can_climb(int(team))} level\n" +
         f"climbs: {main.get_percentage(int(team), "climb")}% of the time\n" +
         f"has competed at: {main.team_events_played(int(team))}\n"
