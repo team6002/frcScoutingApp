@@ -52,12 +52,12 @@ async def get_park(ctx, team):
 @bot.command(name="climb_percent", description="returns_percent_team_climbed")
 async def get_climb_percent(ctx, team):
     await ctx.defer()
-    await ctx.respond(f"{team} climbed in {main.climb_percentage(int(team), True)}")
+    await ctx.respond(f"{team} climbed in {main.get_percentage(int(team), "climb")}")
 
 @bot.command(name="auto_leave_percent", description="returns_percent_team_left_in_auto")
 async def get_auto_leave_percent(ctx, team):
     await ctx.defer()
-    await ctx.respond(f"{team} left the start line in {main.auto_leave_percentage(int(team), True)}")
+    await ctx.respond(f"{team} left the start line in {main.get_percentage(int(team), "auto_leave")}")
 
 @bot.command(name="played", description="returns_number_of_tournaments_played")
 async def played(ctx, team):
