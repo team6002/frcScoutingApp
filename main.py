@@ -285,19 +285,19 @@ def auto_leave(team_num):
             j += 1
     return False
 
-def climb_percentage(team_num, extra_text):
-    match_ = 0
+def get_percentage(team_num, type_):
+    global match, type_of_data
     team_slot = 0
     red = False
     i = 1
     j = 0
-    climbs = 0
+    count = 0
     keys = []
 
     events_climb = call_tba_api(f"team/frc{team_num}/events/2025")
     try:
         if "does not exist" in events_climb["Error"]:
-            return "0 matches (0)"
+            return "0"
     except Exception:
         pass
 
@@ -308,96 +308,44 @@ def climb_percentage(team_num, extra_text):
             matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
             if not matches:
                 break
-            while match_ < len(matches):
-                for team in matches[match_]["alliances"]["blue"]["team_keys"]:
+            match = 0
+            while match < len(matches):
+                for team in matches[match]["alliances"]["blue"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = False
                     i += 1
                 i = 1
-                for team in matches[match_]["alliances"]["red"]["team_keys"]:
+                for team in matches[match]["alliances"]["red"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = True
                     i += 1
                 i = 1
 
-                if red is False:
-                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_]["score_breakdown"]["blue"][
-                        f"endGameRobot{team_slot}"]
+                if type_ == "auto_leave":
+                    type_of_data = f"autoLineRobot{team_slot}"
+                elif type_ == "climb":
+                    type_of_data = f"endGameRobot{team_slot}"
+
+                if not red:
+                    climb_or_leave = \
+                    call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][type_of_data]
                 else:
-                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_]["score_breakdown"]["red"][
-                        f"endGameRobot{team_slot}"]
-                match_ = match_ + 1
+                    climb_or_leave = \
+                    call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["red"][type_of_data]
+                match = match + 1
 
                 # save all results in list, check if list contains one by one, and if contains none, return N/A
-                if climb_ == "DeepCage" or climb_ == "ShallowCage":
-                    climbs += 1
+                if type_ == "climb":
+                    if climb_or_leave == "DeepCage" or climb_or_leave == "ShallowCage":
+                        count += 1
+                elif type_ == "auto_leave":
+                    if climb_or_leave:
+                        count += 1
             j += 1
 
-    if match_ == 0:
-        return "0 matches (0)"
-
-    if extra_text:
-        return f'{round((climbs / match_) * 100, 1)}% of their matches ({match_})'
-    else:
-        return f'{round((climbs / match_) * 100, 1)}% ({match_})'
-
-def auto_leave_percentage(team_num, extra_text):
-    team_slot = 0
-    red = False
-    i = 1
-    j = 0
-    leaves = 0
-    keys = []
-    match_s = 0
-
-    events_climb = call_tba_api(f"team/frc{team_num}/events/2025")
-    try:
-        if "does not exist" in events_climb["Error"]:
-            return "0 matches (0)"
-    except Exception:
-        pass
-
-    for event in events_climb:
-        keys.append(event["key"])
-
-        while j < len(keys):
-            matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
-            if not matches:
-                break
-            while match_s < len(matches):
-                for team in matches[match_s]["alliances"]["blue"]["team_keys"]:
-                    if team == f"frc{team_num}":
-                        team_slot = i
-                        red = False
-                    i += 1
-                i = 1
-                for team in matches[match_s]["alliances"]["red"]["team_keys"]:
-                    if team == f"frc{team_num}":
-                        team_slot = i
-                        red = True
-                    i += 1
-                i = 1
-
-                if red is False:
-                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_s]["score_breakdown"]["blue"][
-                        f"autoLineRobot{team_slot}"]
-                else:
-                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_s]["score_breakdown"]["blue"][
-                        f"autoLineRobot{team_slot}"]
-
-                match_s += 1
-
-                if leave_:
-                    leaves += 1
-            j += 1
-    if match_s == 0:
-        return "0 matches (0)"
-    if extra_text:
-        return f'{round((leaves / match_s) * 100, 1)}% of their matches ({match_s})'
-    else:
-        return f'{round((leaves / match_s) * 100, 1)}% ({match_s})'
+    return f'{round((count / match) * 100, 1)}% of the time in {match} matches'
 
 def can_climb(team_num):
     team_slot = 0
