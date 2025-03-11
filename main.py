@@ -116,8 +116,8 @@ async def update_sheet():
         events_played.append([team_events_played(team[0])])
         teams_moved.append([auto_leave(team[0])])
         teams_climbed.append([can_climb(team[0])])
-        teams_climbed_percent.append([climb_percentage(team[0], False)])
-        teams_moved_percent.append([auto_leave_percentage(team[0], False)])
+        teams_climbed_percent.append([get_percentage(team[0], "climb")])
+        teams_moved_percent.append([get_percentage(team[0], "auto_leave")])
 
     # complete_data.append(team_numbers)
     # complete_data.append(team_names)
