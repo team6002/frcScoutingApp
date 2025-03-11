@@ -6,7 +6,9 @@
   "team_rookie_year_column": "E",
   "team_winrate_column" : "F",
   "team_auto_move_column" : "G",
-  "team_climb_column" : "H",
-  "team_events_played_column" : "I",
+  "team_auto_move_percent_column" : "H",
+  "team_climb_column" : "I",
+  "team_climb_percent_column" : "J",
+  "team_events_played_column" : "K",
   "spreadsheet_name": "6002 data sheet 2025 Berrien springs"
 }
