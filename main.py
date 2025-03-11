@@ -1,3 +1,4 @@
+import gspread
 import statbotics
 import json
 import requests
@@ -14,6 +15,8 @@ spreadsheet_name = constant["spreadsheet_name"]
 team_rookie_year_column = constant["team_rookie_year_column"]
 team_auto_move_column = constant["team_auto_move_column"]
 team_climb_column = constant["team_climb_column"]
+team_auto_move_percent_column = constant["team_auto_move_percent_column"]
+team_climb_percent_column = constant["team_climb_percent_column"]
 team_events_played_column = constant["team_events_played_column"]
 
 
@@ -30,6 +33,11 @@ event_keys = [
     # "2025mibat"
 ]
 
+gc = gspread.service_account(filename="json-files/credentials.json")
+
+# Open a sheet from a spreadsheet in one go
+sheet = gc.open(spreadsheet_name).sheet1
+
 team_numbers = []
 team_names = []
 team_states = []
@@ -39,7 +47,12 @@ rookie_years = []
 auto_move = []
 climb = []
 events_played = []
+teams_climbed = []
+teams_moved = []
+teams_moved_percent = []
+teams_climbed_percent = []
 stat_by_team = []
+complete_data = []
 
 
 def call_tba_api(url):
@@ -56,12 +69,127 @@ def clear_vars():
     rookie_years.clear()
     auto_move.clear()
     climb.clear()
+    teams_moved.clear()
+    teams_climbed.clear()
 
 def update_event_json():
     for event in event_keys:
         with open(f"./json-files/{event}.json", "w+") as jsonFile:
             data = call_tba_api(f"/event/{event}/teams")
             jsonFile.write(json.dumps(data))
+
+async def update_sheet():
+    # update json files for entered event keys
+    clear_vars()
+    update_event_json()
+    # create lists that will store gathered data so that we can push all the data in one go
+
+    # store team numbers, names, and state/provinces
+    for event in event_keys:
+        with open(f"./json-files/{event}.json", "r") as data:
+            data = json.load(data)
+            for item in data:
+                try:
+                    team_numbers.append([item["team_number"]])
+                except Exception:
+                    team_numbers.append(["N/A"])
+                try:
+                    team_names.append([item["nickname"]])
+                except Exception:
+                    team_names.append(["N/A"])
+                try:
+                    team_states.append([item["state_prov"]])
+                except Exception:
+                    team_states.append(["N/A"])
+
+    # store team epas, winrates, and rookie years
+    for team in team_numbers:
+        print(team[0])
+        stat_by_team.clear()
+        stat_by_team.append(stats.get_team_year(team[0], 2025))
+        auto_move.append([auto_leave(team[0])])
+        climb.append([can_climb(team[0])])
+        team_epas.append([stat_by_team[0]["epa"]["breakdown"]["total_points"]])
+        rookie_years.append([stats.get_team(team[0])["rookie_year"]])
+        team_winrate = round(stat_by_team[0]["record"]["winrate"] * 100, 1)
+        team_winrates.append([f"{team_winrate}%"])
+        events_played.append([team_events_played(team[0])])
+        teams_moved.append([auto_leave(team[0])])
+        teams_climbed.append([can_climb(team[0])])
+        teams_climbed_percent.append([climb_percentage(team[0], False)])
+        teams_moved_percent.append([auto_leave_percentage(team[0], False)])
+
+    # complete_data.append(team_numbers)
+    # complete_data.append(team_names)
+    # complete_data.append(team_states)
+    # complete_data.append(team_epas)
+    # complete_data.append(rookie_years)
+    # complete_data.append(team_winrates)
+    # complete_data.append(auto_move)
+    # complete_data.append(teams_moved_percent)
+    # complete_data.append(teams_climbed)
+    # complete_data.append(teams_climbed_percent)
+    # complete_data.append(team_events_played)
+    # use batch update to avoid google requests rate limit
+    sheet.batch_update([{
+        "range": f"{team_number_column}2:{team_number_column}{len(team_numbers) + 1}",
+        "values": team_numbers
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_name_column}2:{team_name_column}{len(team_names) + 1}",
+        "values": team_names
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_state_column}2:{team_state_column}{len(team_states) + 1}",
+        "values": team_states
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_epa_column}2:{team_epa_column}{len(team_epas) + 1}",
+        "values": team_epas
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_winrate_column}2:{team_winrate_column}{len(team_winrates) + 1}",
+        "values": team_winrates
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_rookie_year_column}2:{team_rookie_year_column}{len(rookie_years) + 1}",
+        "values": rookie_years
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_auto_move_column}2:{team_auto_move_column}{len(auto_move) + 1}",
+        "values": auto_move
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_auto_move_percent_column}2:{team_auto_move_percent_column}{len(teams_moved) + 1}",
+        "values": teams_moved_percent
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_climb_column}2:{team_climb_column}{len(climb) + 1}",
+        "values": climb
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_climb_percent_column}2:{team_climb_percent_column}{len(teams_climbed) + 1}",
+        "values": teams_climbed_percent
+    }])
+
+    sheet.batch_update([{
+        "range": f"{team_events_played_column}2:{team_events_played_column}{len(climb) + 1}",
+        "values": events_played
+    }])
+
+    # sheet.batch_update([{
+    #     "range" : f"{team_number_column}2:{team_events_played_column}{len(team_numbers) + 1}",
+    #     "values" : [complete_data]
+    # }])
 
 def get_epa_by_team(team, epa_type):
     try:
@@ -157,8 +285,8 @@ def auto_leave(team_num):
             j += 1
     return False
 
-def climb_percentage(team_num):
-    global match
+def climb_percentage(team_num, extra_text):
+    match_ = 0
     team_slot = 0
     red = False
     i = 1
@@ -169,7 +297,7 @@ def climb_percentage(team_num):
     events_climb = call_tba_api(f"team/frc{team_num}/events/2025")
     try:
         if "does not exist" in events_climb["Error"]:
-            return "0"
+            return "0 matches (0)"
     except Exception:
         pass
 
@@ -180,15 +308,14 @@ def climb_percentage(team_num):
             matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
             if not matches:
                 break
-            match = 0
-            while match < len(matches):
-                for team in matches[match]["alliances"]["blue"]["team_keys"]:
+            while match_ < len(matches):
+                for team in matches[match_]["alliances"]["blue"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = False
                     i += 1
                 i = 1
-                for team in matches[match]["alliances"]["red"]["team_keys"]:
+                for team in matches[match_]["alliances"]["red"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = True
@@ -196,33 +323,39 @@ def climb_percentage(team_num):
                 i = 1
 
                 if red is False:
-                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][
+                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_]["score_breakdown"]["blue"][
                         f"endGameRobot{team_slot}"]
                 else:
-                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["red"][
+                    climb_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_]["score_breakdown"]["red"][
                         f"endGameRobot{team_slot}"]
-                match = match + 1
+                match_ = match_ + 1
 
                 # save all results in list, check if list contains one by one, and if contains none, return N/A
                 if climb_ == "DeepCage" or climb_ == "ShallowCage":
                     climbs += 1
             j += 1
 
-    return f'{round((climbs/match)*100, 1)}'
+    if match_ == 0:
+        return "0 matches (0)"
 
-def auto_leave_percentage(team_num):
-    global match
+    if extra_text:
+        return f'{round((climbs / match_) * 100, 1)}% of their matches ({match_})'
+    else:
+        return f'{round((climbs / match_) * 100, 1)}% ({match_})'
+
+def auto_leave_percentage(team_num, extra_text):
     team_slot = 0
     red = False
     i = 1
     j = 0
     leaves = 0
     keys = []
+    match_s = 0
 
     events_climb = call_tba_api(f"team/frc{team_num}/events/2025")
     try:
         if "does not exist" in events_climb["Error"]:
-            return "0"
+            return "0 matches (0)"
     except Exception:
         pass
 
@@ -233,15 +366,14 @@ def auto_leave_percentage(team_num):
             matches = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")
             if not matches:
                 break
-            match = 0
-            while match < len(matches):
-                for team in matches[match]["alliances"]["blue"]["team_keys"]:
+            while match_s < len(matches):
+                for team in matches[match_s]["alliances"]["blue"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = False
                     i += 1
                 i = 1
-                for team in matches[match]["alliances"]["red"]["team_keys"]:
+                for team in matches[match_s]["alliances"]["red"]["team_keys"]:
                     if team == f"frc{team_num}":
                         team_slot = i
                         red = True
@@ -249,19 +381,23 @@ def auto_leave_percentage(team_num):
                 i = 1
 
                 if red is False:
-                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][
+                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_s]["score_breakdown"]["blue"][
                         f"autoLineRobot{team_slot}"]
                 else:
-                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match]["score_breakdown"]["blue"][
+                    leave_ = call_tba_api(f"team/frc{team_num}/event/{keys[j]}/matches")[match_s]["score_breakdown"]["blue"][
                         f"autoLineRobot{team_slot}"]
-                match = match + 1
 
-                # save all results in list, check if list contains one by one, and if contains none, return N/A
+                match_s += 1
+
                 if leave_:
                     leaves += 1
             j += 1
-
-    return f'{round((leaves/match)*100, 1)}'
+    if match_s == 0:
+        return "0 matches (0)"
+    if extra_text:
+        return f'{round((leaves / match_s) * 100, 1)}% of their matches ({match_s})'
+    else:
+        return f'{round((leaves / match_s) * 100, 1)}% ({match_s})'
 
 def can_climb(team_num):
     team_slot = 0
