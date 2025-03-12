@@ -33,7 +33,7 @@ event_keys = [
     # "2025mibat"
 ]
 
-gc = gspread.service_account(filename="json-files/credentials.json")
+gc = gspread.service_account(filename="./json-files/credentials.json")
 
 # Open a sheet from a spreadsheet in one go
 sheet = gc.open(spreadsheet_name).sheet1
