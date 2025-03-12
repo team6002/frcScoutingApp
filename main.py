@@ -345,7 +345,7 @@ def get_percentage(team_num, type_):
                         count += 1
             j += 1
 
-    return f'{round((count / match) * 100, 1)}'
+    return f'{round((count / match) * 100, 1)}% of the time in {match} matches'
 
 def can_climb(team_num):
     team_slot = 0
